@@ -6,6 +6,7 @@ require (
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/gorilla/sessions v1.4.0
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.34.0
 	golang.org/x/crypto v0.37.0
 	golang.org/x/net v0.39.0

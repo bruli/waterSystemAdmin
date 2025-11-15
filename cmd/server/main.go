@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"net/http"
 	"os"
@@ -38,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cl := api.NewClient(conf.ApiAuthKey(), conf.ApiUrl(), 5*time.Second)
+	cl := api.NewClient(conf.ApiAuthKey, conf.ApiUrl, 5*time.Second)
 	statusRepo := api.NewStatusRepository(cl)
 	logsRepo := api.NewLogRepository(cl)
 	programsRepo := api.NewAllProgramsRepository(cl)
@@ -47,7 +48,7 @@ func main() {
 	zoneRepo := api.NewZoneRepository(cl)
 	weeklyRepo := api.NewWeeklyRepository(cl)
 	tempRepo := api.NewTemperatureRepository(cl)
-	passwordRepo := disk.NewPasswordRepository(conf.PasswordFile())
+	passwordRepo := disk.NewPasswordRepository(conf.PasswordFile)
 
 	findZones := zones.NewFindZones(zoneRepo)
 	passwordExists := password.NewExists(passwordRepo)
@@ -84,7 +85,7 @@ func main() {
 	http.HandleFunc("/password", controller.Password(tplSet, password.NewCreate(passwordRepo), log))
 
 	srv := &http.Server{
-		Addr:    conf.ServerURL(),
+		Addr:    conf.ServerURL,
 		Handler: nil,
 	}
 
@@ -101,4 +102,11 @@ func buildLogger() zerolog.Logger {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	log := zerolog.New(os.Stdout).With().Timestamp().Logger()
 	return log
+}
+
+func runServer(log zerolog.Logger, conf *config.Config, srv *http.Server) {
+	log.Info().Msg("starting server at port " + conf.ServerURL)
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal().Err(err).Msg("failed to start server")
+	}
 }
