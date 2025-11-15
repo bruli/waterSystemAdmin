@@ -36,6 +36,12 @@ docker-exec:
 	echo "🔎 Opening shell inside container..."; \
 	docker exec -it $(APP) bash
 
+.PHONY: security
+security:
+	@set -euo pipefail; \
+	echo "👉 Check security"; \
+	go tool govulncheck ./...
+
 .PHONY: lint
 lint:
 	@set -euo pipefail; \
