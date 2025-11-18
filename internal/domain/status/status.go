@@ -7,6 +7,7 @@ type Status struct {
 	Temperature     float64
 	Humidity        float64
 	IsRaining       bool
+	IsDay           bool
 	UpdatedAt       time.Time
 	Active          bool
 }

@@ -78,6 +78,7 @@ func (s StatusRepository) buildStatus(st Status) (*status.Status, error) {
 		Temperature:     st.Temperature,
 		Humidity:        st.Humidity,
 		IsRaining:       st.IsRaining,
+		IsDay:           st.IsDay,
 		UpdatedAt:       updated,
 		Active:          st.Active,
 	}, nil

@@ -28,18 +28,37 @@
         <!-- Bloc 3 -->
         <div class="col-12 col-sm-6 col-lg-4">
             <div class="card border-warning shadow-sm">
-                <div class="card-body text-center {% if status.IsRaining %}bg-secondary bg-opacity-25{% else %}bg-warning bg-opacity-25{% endif %}">
+                {% set isDay = status.IsDay %}
+                {% set isRaining = status.IsRaining %}
+
+                <div class="card-body text-center
+            {% if isRaining and isDay %} bg-secondary bg-opacity-25 {% endif %}
+            {% if isRaining and not isDay %} bg-dark bg-opacity-25 text-light {% endif %}
+            {% if not isRaining and isDay %} bg-warning bg-opacity-25 {% endif %}
+            {% if not isRaining and not isDay %} bg-primary bg-opacity-25 text-light {% endif %}
+        ">
                     <h5 class="card-title">Weather</h5>
-                    {% if status.IsRaining %}
+
+                    {% if isRaining and isDay %}
                     <span class="fs-1 text-primary">🌧️</span>
-                    <p class="text-muted">Raining</p>
-                    {% else %}
+                    <p class="text-muted">Raining (Day)</p>
+
+                    {% elif isRaining and not isDay %}
+                    <span class="fs-1 text-light">🌧️</span>
+                    <p class="text-light">Raining (Night)</p>
+
+                    {% elif not isRaining and isDay %}
                     <span class="fs-1 text-warning">☀️</span>
-                    <p class="text-muted">Sunny</p>
+                    <p class="text-muted">Sunny (Day)</p>
+
+                    {% else %}
+                    <span class="fs-1 text-light">🌙</span>
+                    <p class="text-light">Clear (Night)</p>
                     {% endif %}
                 </div>
             </div>
         </div>
+
 
 
         <!-- Bloc 4 -->
