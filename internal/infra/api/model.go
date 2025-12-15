@@ -10,7 +10,7 @@ type Status struct {
 	SystemStartedAt string `json:"system_started_at"`
 	Temperature     float64
 	Humidity        float64
-	IsRaining       bool
+	IsRaining       bool   `json:"is_raining"`
 	IsDay           bool   `json:"is_day"`
 	UpdatedAt       string `json:"updated_at"`
 	Active          bool
