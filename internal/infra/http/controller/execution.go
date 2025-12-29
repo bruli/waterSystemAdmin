@@ -5,13 +5,14 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 	pongo3 "github.com/flosch/pongo2/v6"
 	"github.com/rs/zerolog"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/execution"
 )
 
-func Execution(set *pongo3.TemplateSet, svc *execution.ExecuteZone, log zerolog.Logger) http.HandlerFunc {
+func Execution(set *pongo3.TemplateSet, svc *execution.ExecuteZone, stSvc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		tpl, err := set.FromFile("execution.html")
@@ -23,6 +24,14 @@ func Execution(set *pongo3.TemplateSet, svc *execution.ExecuteZone, log zerolog.
 		context := map[string]interface{}{
 			"page": "execution",
 			"id":   id,
+		}
+		st, err := stSvc.Find(r.Context())
+		switch {
+		case err != nil:
+			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
+			context["error_msg"] = err.Error()
+		default:
+			context["status"] = st
 		}
 		if r.Method == http.MethodPost {
 			seconds, err := strconv.Atoi(r.FormValue("seconds"))

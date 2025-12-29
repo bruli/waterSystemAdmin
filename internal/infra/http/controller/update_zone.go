@@ -4,13 +4,14 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 	pongo3 "github.com/flosch/pongo2/v6"
 	"github.com/rs/zerolog"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/zones"
 )
 
-func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones.Update, log zerolog.Logger) http.HandlerFunc {
+func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones.Update, stSvc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := set.FromFile("update_zone.html")
 		if err != nil {
@@ -21,6 +22,14 @@ func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones
 		id := r.PathValue("id")
 		context := map[string]interface{}{
 			"page": "zones",
+		}
+		st, err := stSvc.Find(r.Context())
+		switch {
+		case err != nil:
+			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
+			context["error_msg"] = err.Error()
+		default:
+			context["status"] = st
 		}
 		if r.Method == http.MethodPost {
 			processUpdateZoneForm(r, id, context, update)

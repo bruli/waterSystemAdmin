@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 
+	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 	pongo3 "github.com/flosch/pongo2/v6"
 	"github.com/rs/zerolog"
 
@@ -20,7 +21,7 @@ type Weekly struct {
 	Programs []programs.Program
 }
 
-func Programs(set *pongo3.TemplateSet, svc *programs.FindAllPrograms, log zerolog.Logger) http.HandlerFunc {
+func Programs(set *pongo3.TemplateSet, svc *programs.FindAllPrograms, stSvc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := set.FromFile("programs.html")
 		if err != nil {
@@ -30,6 +31,14 @@ func Programs(set *pongo3.TemplateSet, svc *programs.FindAllPrograms, log zerolo
 		}
 		context := map[string]interface{}{
 			"page": "programs",
+		}
+		st, err := stSvc.Find(r.Context())
+		switch {
+		case err != nil:
+			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
+			context["error_msg"] = err.Error()
+		default:
+			context["status"] = st
 		}
 		progrms, err := svc.Find(r.Context())
 		switch {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 	"github.com/flosch/pongo2/v6"
 	"github.com/rs/zerolog"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/bruli/waterSystemAdmin/internal/domain/zones"
 )
 
-func CreateProgram(tplSet *pongo2.TemplateSet, zonesSvc *zones.FindZones, createSvc *programs.Create, log zerolog.Logger) http.HandlerFunc {
+func CreateProgram(tplSet *pongo2.TemplateSet, zonesSvc *zones.FindZones, createSvc *programs.Create, stSvc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := tplSet.FromFile("create_program.html")
 		if err != nil {
@@ -24,6 +25,14 @@ func CreateProgram(tplSet *pongo2.TemplateSet, zonesSvc *zones.FindZones, create
 		context := map[string]interface{}{
 			"page": "programs",
 			"type": programType,
+		}
+		st, err := stSvc.Find(r.Context())
+		switch {
+		case err != nil:
+			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
+			context["error_msg"] = err.Error()
+		default:
+			context["status"] = st
 		}
 		zones, err := zonesSvc.Find(r.Context())
 		if err != nil {
