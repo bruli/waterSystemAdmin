@@ -82,7 +82,7 @@ func main() {
 	http.HandleFunc("/zones/new", authMdw(controller.CreateZone(tplSet, zones.NewCreate(zoneRepo), findStatus, log)))
 	http.HandleFunc("/zones/{id}/delete", authMdw(controller.DeleteZone(zones.NewDelete(zoneRepo))))
 	http.HandleFunc("/zones/{id}/edit", authMdw(controller.UpdateZone(tplSet, findZones, zones.NewUpdate(zoneRepo), findStatus, log)))
-	http.HandleFunc("/login", controller.Login(tplSet, sessionStore, password.NewCheck(passwordRepo), log))
+	http.HandleFunc("/login", controller.Login(tplSet, sessionStore, password.NewCheck(passwordRepo), findStatus, log))
 	http.HandleFunc("/logout", controller.Logout(sessionStore, log))
 	http.HandleFunc("/password", controller.Password(tplSet, password.NewCreate(passwordRepo), log))
 

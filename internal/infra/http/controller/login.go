@@ -4,13 +4,14 @@ import (
 	"net/http"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/password"
+	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 
 	"github.com/flosch/pongo2/v6"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 )
 
-func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *password.Check, log zerolog.Logger) http.HandlerFunc {
+func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *password.Check, stSvc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := tplSet.FromFile("login.html")
 		if err != nil {
@@ -19,6 +20,13 @@ func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *passw
 			return
 		}
 		context := map[string]interface{}{}
+		st, err := stSvc.Find(r.Context())
+		if err != nil {
+			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		context["status"] = st
 		if r.Method == http.MethodPost {
 			valid, err := check.Check(r.Context(), r.FormValue("password"))
 			if err != nil {
