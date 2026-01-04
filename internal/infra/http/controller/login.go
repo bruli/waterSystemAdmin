@@ -19,14 +19,11 @@ func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *passw
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		context := map[string]interface{}{}
-		st, err := stSvc.Find(r.Context())
+		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
 		if err != nil {
-			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
+			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
 		}
-		context["status"] = st
 		if r.Method == http.MethodPost {
 			valid, err := check.Check(r.Context(), r.FormValue("password"))
 			if err != nil {
@@ -45,11 +42,11 @@ func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *passw
 				http.Redirect(w, r, "/status", http.StatusSeeOther)
 				return
 			default:
-				context["error_msg"] = "Invalid password"
+				tplCtx.AddError("Invalid password")
 			}
 		}
 
-		if err = tpl.ExecuteWriter(context, w); err != nil {
+		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 			http.Error(w, "Error executant login template ", http.StatusInternalServerError)
 		}

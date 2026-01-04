@@ -18,26 +18,21 @@ func Zones(set *pongo3.TemplateSet, svc *zones.FindZones, stSvc *status.FindStat
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		context := map[string]interface{}{
-			"page": "zones",
+		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		st, err := stSvc.Find(r.Context())
-		switch {
-		case err != nil:
-			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
-		default:
-			context["status"] = st
-		}
+		tplCtx.Add("page", "zones")
 		list, err := svc.Find(r.Context())
 		switch {
 		case err != nil:
 			log.Error().Err(err).Msgf("error finding zones. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
+			tplCtx.AddError(err.Error())
 		default:
-			context["zones"] = list
+			tplCtx.Add("zones", list)
 		}
-		if err = tpl.ExecuteWriter(context, w); err != nil {
+		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

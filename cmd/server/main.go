@@ -41,6 +41,11 @@ func main() {
 
 	cl := api.NewClient(conf.ApiAuthKey, conf.ApiUrl, 5*time.Second)
 	statusRepo := api.NewStatusRepository(cl)
+	go func() {
+		if err = statusRepo.Set(ctx, 5*time.Minute); err != nil {
+			log.Error().Err(err).Msg("error setting status")
+		}
+	}()
 	logsRepo := api.NewLogRepository(cl)
 	programsRepo := api.NewAllProgramsRepository(cl)
 	executionRepo := api.NewExecuteZoneRepository(cl)

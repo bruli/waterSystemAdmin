@@ -19,43 +19,38 @@ func CreateZone(set *pongo3.TemplateSet, svc *zones.Create, stSvc *status.FindSt
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		context := map[string]interface{}{
-			"page":   "zones",
-			"relays": []int{1, 2, 3, 4},
+		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		st, err := stSvc.Find(r.Context())
-		switch {
-		case err != nil:
-			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
-		default:
-			context["status"] = st
-		}
+		tplCtx.Add("page", "zones")
+		tplCtx.Add("relays", []int{1, 2, 3, 4})
 		if r.Method == http.MethodPost {
-			processCreateZoneForm(r, context, svc)
+			processCreateZoneForm(r, tplCtx, svc)
 		}
 
-		if err = tpl.ExecuteWriter(context, w); err != nil {
+		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
 }
 
-func processCreateZoneForm(r *http.Request, context map[string]interface{}, svc *zones.Create) {
+func processCreateZoneForm(r *http.Request, context TemplateController, svc *zones.Create) {
 	id := r.FormValue("id")
 	name := r.FormValue("name")
 	relayValues := r.Form["relays"]
 
 	if id == "" || name == "" || len(relayValues) == 0 {
-		context["error_msg"] = "All fields are required"
+		context.AddError("All fields are required")
 		return
 	}
 	rel := make([]int, len(relayValues))
 	for i, val := range relayValues {
 		num, err := strconv.Atoi(val)
 		if err != nil {
-			context["error_msg"] = "Invalid relay value"
+			context.AddError("Invalid relay value")
 			return
 		}
 		rel[i] = num
@@ -65,9 +60,9 @@ func processCreateZoneForm(r *http.Request, context map[string]interface{}, svc 
 		Name:   name,
 		Relays: rel,
 	}); err != nil {
-		context["error_msg"] = "Create zone failed."
+		context.AddError("Create zone failed.")
 		return
 	}
 
-	context["success"] = true
+	context.Add("success", true)
 }

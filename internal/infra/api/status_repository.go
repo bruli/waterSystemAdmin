@@ -6,16 +6,58 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 	"github.com/bruli/waterSystemAdmin/internal/domain/vo"
 )
 
 type StatusRepository struct {
-	cl *Client
+	cl            *Client
+	currentStatus *status.Status
+	sync.Mutex
 }
 
-func (s StatusRepository) Update(ctx context.Context) error {
+func (s *StatusRepository) Set(ctx context.Context, duration time.Duration) error {
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	st, err := s.getStatus(ctx)
+	if err != nil {
+		return err
+	}
+	s.currentStatus = st
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-tick.C:
+			st, err = s.getStatus(ctx)
+			if err != nil {
+				return err
+			}
+			s.currentStatus = st
+		}
+	}
+}
+
+func (s *StatusRepository) Find(ctx context.Context) (*status.Status, error) {
+	if s.currentStatus == nil {
+		s.Lock()
+		defer s.Unlock()
+		st, err := s.getStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+		s.currentStatus = st
+		return st, nil
+	}
+	return s.currentStatus, nil
+}
+
+func (s *StatusRepository) Update(ctx context.Context) error {
 	url := fmt.Sprintf("http://%s/weather", s.cl.apiURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -30,12 +72,12 @@ func (s StatusRepository) Update(ctx context.Context) error {
 		_ = resp.Body.Close()
 	}()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to update status. Reques no accepted: %w", err)
+		return fmt.Errorf("failed to update status. Request no accepted: %w", err)
 	}
 	return nil
 }
 
-func (s StatusRepository) Find(ctx context.Context) (*status.Status, error) {
+func (s *StatusRepository) getStatus(ctx context.Context) (*status.Status, error) {
 	url := fmt.Sprintf("http://%s/status", s.cl.apiURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -60,7 +102,7 @@ func (s StatusRepository) Find(ctx context.Context) (*status.Status, error) {
 	return s.buildStatus(st)
 }
 
-func (s StatusRepository) buildStatus(st Status) (*status.Status, error) {
+func (s *StatusRepository) buildStatus(st Status) (*status.Status, error) {
 	start, err := vo.ParseTimeFromUnix(st.SystemStartedAt)
 	if err != nil {
 		return nil, err

@@ -22,18 +22,13 @@ func CreateProgram(tplSet *pongo2.TemplateSet, zonesSvc *zones.FindZones, create
 			return
 		}
 		programType := r.URL.Query().Get("type")
-		context := map[string]interface{}{
-			"page": "programs",
-			"type": programType,
+		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		st, err := stSvc.Find(r.Context())
-		switch {
-		case err != nil:
-			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
-		default:
-			context["status"] = st
-		}
+		tplCtx.Add("page", "programs")
+		tplCtx.Add("type", programType)
 		zones, err := zonesSvc.Find(r.Context())
 		if err != nil {
 			log.Error().Err(err).Msgf("error finding zones. Error: %s", err.Error())
@@ -42,15 +37,15 @@ func CreateProgram(tplSet *pongo2.TemplateSet, zonesSvc *zones.FindZones, create
 		}
 		switch {
 		case len(zones) == 0:
-			context["error_msg"] = "No zones found"
+			tplCtx.AddError("no zones found")
 		default:
-			context["zones"] = zones
+			tplCtx.Add("zones", zones)
 		}
 
 		if r.Method == http.MethodPost {
-			processCreateProgramForm(r, context, createSvc, programType)
+			processCreateProgramForm(r, tplCtx.toPongoContext(), createSvc, programType)
 		}
-		if err = tpl.ExecuteWriter(context, w); err != nil {
+		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

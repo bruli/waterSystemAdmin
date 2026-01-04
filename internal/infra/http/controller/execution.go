@@ -21,18 +21,13 @@ func Execution(set *pongo3.TemplateSet, svc *execution.ExecuteZone, stSvc *statu
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		context := map[string]interface{}{
-			"page": "execution",
-			"id":   id,
+		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		st, err := stSvc.Find(r.Context())
-		switch {
-		case err != nil:
-			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
-		default:
-			context["status"] = st
-		}
+		tplCtx.Add("page", "execution")
+		tplCtx.Add("id", id)
 		if r.Method == http.MethodPost {
 			seconds, err := strconv.Atoi(r.FormValue("seconds"))
 			if err != nil {
@@ -44,21 +39,21 @@ func Execution(set *pongo3.TemplateSet, svc *execution.ExecuteZone, stSvc *statu
 				ID:      id,
 				Seconds: seconds,
 			}); err != nil {
-				context["error_msg"] = fmt.Sprintf("Error executing zone: %s", err.Error())
-				if err = tpl.ExecuteWriter(context, w); err != nil {
+				tplCtx.AddError(fmt.Sprintf("Error executing zone: %s", err.Error()))
+				if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 					log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
 				return
 			}
-			context["success"] = true
-			if err = tpl.ExecuteWriter(context, w); err != nil {
+			tplCtx.Add("success", true)
+			if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 				log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
 		}
-		if err = tpl.ExecuteWriter(context, w); err != nil {
+		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

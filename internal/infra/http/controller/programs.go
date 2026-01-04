@@ -29,33 +29,28 @@ func Programs(set *pongo3.TemplateSet, svc *programs.FindAllPrograms, stSvc *sta
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		context := map[string]interface{}{
-			"page": "programs",
+		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		st, err := stSvc.Find(r.Context())
-		switch {
-		case err != nil:
-			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
-		default:
-			context["status"] = st
-		}
+		tplCtx.Add("page", "programs")
 		progrms, err := svc.Find(r.Context())
 		switch {
 		case err != nil:
 			log.Error().Err(err).Msgf("error finding programs. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
+			tplCtx.AddError(err.Error())
 		default:
 			sections := []Section{
 				{ID: "collapseOne", Title: "Daily", Data: progrms.Daily},
 				{ID: "collapseTwo", Title: "Odd", Data: progrms.Odd},
 				{ID: "collapseThree", Title: "Even", Data: progrms.Even},
 			}
-			context["sections"] = sections
-			context["weekly"] = buildWeekly(progrms.Weekly)
-			context["temperature"] = progrms.Temperature
+			tplCtx.Add("sections", sections)
+			tplCtx.Add("weekly", buildWeekly(progrms.Weekly))
+			tplCtx.Add("temperature", progrms.Temperature)
 		}
-		if err = tpl.ExecuteWriter(context, w); err != nil {
+		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

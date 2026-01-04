@@ -1,5 +1,5 @@
-#production ansible_user=pablo ansible_host=192.168.1.10 ansible_port=22
-production ansible_user=pablo ansible_host=localhost ansible_port=1560
+production ansible_user=pablo ansible_host=192.168.1.10
+#production ansible_user=pablo ansible_host=localhost ansible_port=1560
 
 [raspberry_water_system_admin]
 production

@@ -20,19 +20,14 @@ func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones
 			return
 		}
 		id := r.PathValue("id")
-		context := map[string]interface{}{
-			"page": "zones",
+		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		st, err := stSvc.Find(r.Context())
-		switch {
-		case err != nil:
-			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
-		default:
-			context["status"] = st
-		}
+		tplCtx.Add("page", "zones")
 		if r.Method == http.MethodPost {
-			processUpdateZoneForm(r, id, context, update)
+			processUpdateZoneForm(r, id, tplCtx, update)
 		}
 		list, err := findSvc.Find(r.Context())
 		if err != nil {
@@ -46,28 +41,29 @@ func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones
 				zo = &zon
 			}
 		}
-		context["zone"] = zo
-		context["relays"] = []int{1, 2, 3, 4}
-		if err = tpl.ExecuteWriter(context, w); err != nil {
+
+		tplCtx.Add("zone", zo)
+		tplCtx.Add("relays", []int{1, 2, 3, 4})
+		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
 }
 
-func processUpdateZoneForm(r *http.Request, id string, context map[string]interface{}, update *zones.Update) {
+func processUpdateZoneForm(r *http.Request, id string, context TemplateController, update *zones.Update) {
 	name := r.FormValue("name")
 	relayValues := r.Form["relays"]
 
 	if id == "" || name == "" || len(relayValues) == 0 {
-		context["error_msg"] = "All fields are required"
+		context.AddError("All fields are required")
 		return
 	}
 	rel := make([]int, len(relayValues))
 	for i, val := range relayValues {
 		num, err := strconv.Atoi(val)
 		if err != nil {
-			context["error_msg"] = "Invalid relay value"
+			context.AddError("Invalid relay value")
 			return
 		}
 		rel[i] = num
@@ -79,7 +75,8 @@ func processUpdateZoneForm(r *http.Request, id string, context map[string]interf
 	}
 	if err := update.Update(r.Context(), zo); err != nil {
 		context["error_msg"] = "Update zone failed."
+		context.AddError("Update zone failed.")
 		return
 	}
-	context["success"] = true
+	context.Add("success", true)
 }

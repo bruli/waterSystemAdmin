@@ -18,26 +18,21 @@ func FindLogs(tplset *pongo2.TemplateSet, svc *logs.FindLogs, stSvc *status.Find
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		context := pongo2.Context{
-			"page": "logs",
+		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		st, err := stSvc.Find(r.Context())
-		switch {
-		case err != nil:
-			log.Error().Err(err).Msgf("error finding status. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
-		default:
-			context["status"] = st
-		}
+		tplCtx.Add("page", "logs")
 		result, err := svc.Find(r.Context())
 		switch {
 		case err != nil:
 			log.Error().Err(err).Msgf("error finding logs. Error: %s", err.Error())
-			context["error_msg"] = err.Error()
+			tplCtx.AddError(err.Error())
 		default:
-			context["logs"] = result
+			tplCtx.Add("logs", result)
 		}
-		if err = tpl.ExecuteWriter(context, w); err != nil {
+		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
