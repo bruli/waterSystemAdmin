@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
 
     concurrency:
@@ -27,10 +27,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up Go 1.25.5
+      - name: Set up Go 1.25.7
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.5'
+          go-version: '1.25.7'
           cache: false  # usem cache manual per controlar directoris
 
       - name: Cache Go modules
