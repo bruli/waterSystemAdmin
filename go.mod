@@ -204,7 +204,6 @@ require (
 )
 
 tool (
-	github.com/golangci/golangci-lint/cmd/golangci-lint
 	golang.org/x/vuln/cmd/govulncheck
 	mvdan.cc/gofumpt
 )

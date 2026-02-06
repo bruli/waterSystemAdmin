@@ -6,55 +6,38 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 	"github.com/bruli/waterSystemAdmin/internal/domain/vo"
 )
 
 type StatusRepository struct {
-	cl            *Client
-	currentStatus *status.Status
-	sync.Mutex
-}
-
-func (s *StatusRepository) Set(ctx context.Context, duration time.Duration) error {
-	tick := time.NewTicker(duration)
-	defer tick.Stop()
-
-	st, err := s.getStatus(ctx)
-	if err != nil {
-		return err
-	}
-	s.currentStatus = st
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-tick.C:
-			st, err = s.getStatus(ctx)
-			if err != nil {
-				return err
-			}
-			s.currentStatus = st
-		}
-	}
+	cl *Client
 }
 
 func (s *StatusRepository) Find(ctx context.Context) (*status.Status, error) {
-	if s.currentStatus == nil {
-		s.Lock()
-		defer s.Unlock()
-		st, err := s.getStatus(ctx)
-		if err != nil {
-			return nil, err
-		}
-		s.currentStatus = st
-		return st, nil
+	url := fmt.Sprintf("http://%s/status", s.cl.apiURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read status: %w", err)
 	}
-	return s.currentStatus, nil
+	req.Header.Add("Authorization", s.cl.token)
+	resp, err := s.cl.cl.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed doing the request to read status: %w", err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to read status. Request no accepted. Status code : %v", resp.StatusCode)
+	}
+	var st Status
+	data, _ := io.ReadAll(resp.Body)
+	if err = json.Unmarshal(data, &st); err != nil {
+		return nil, fmt.Errorf("failed to unmarshall status: %w", err)
+	}
+	return s.buildStatus(st)
 }
 
 func (s *StatusRepository) Update(ctx context.Context) error {
@@ -75,31 +58,6 @@ func (s *StatusRepository) Update(ctx context.Context) error {
 		return fmt.Errorf("failed to update status. Request no accepted: %w", err)
 	}
 	return nil
-}
-
-func (s *StatusRepository) getStatus(ctx context.Context) (*status.Status, error) {
-	url := fmt.Sprintf("http://%s/status", s.cl.apiURL)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read status: %w", err)
-	}
-	req.Header.Add("Authorization", s.cl.token)
-	resp, err := s.cl.cl.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed doing the request to read status: %w", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to read status. Reques no accepted: %w", err)
-	}
-	var st Status
-	data, _ := io.ReadAll(resp.Body)
-	if err = json.Unmarshal(data, &st); err != nil {
-		return nil, fmt.Errorf("failed to unmarshall status: %w", err)
-	}
-	return s.buildStatus(st)
 }
 
 func (s *StatusRepository) buildStatus(st Status) (*status.Status, error) {

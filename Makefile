@@ -6,6 +6,8 @@ DOCKER_COMPOSE=COMPOSE_BAKE=true docker compose
 
 .DEFAULT_GOAL := help
 
+GOLANGCI_LINT_VERSION=v2.8.0
+
 .PHONY: docker-logs
 docker-logs:
 	@set -euo pipefail; \
@@ -42,11 +44,17 @@ security:
 	echo "👉 Check security"; \
 	go tool govulncheck ./...
 
+.PHONY: install-lint
+install-lint:
+	@set -euo pipefail; \
+    echo "🔧 Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."; \
+    	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
 .PHONY: lint
-lint:
+lint: install-lint
 	@set -euo pipefail; \
 	echo "🚀 Executing golangci-lint..."; \
-    go tool golangci-lint run ./...
+    golangci-lint run ./...
 
 .PHONY: fumpt
 fumpt:
