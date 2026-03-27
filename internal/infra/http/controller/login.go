@@ -19,10 +19,9 @@ func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *passw
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		tplCtx, failed := buildStatusInTemplateController(r.Context(), stSvc)
+		if failed {
+			log.Error().Msg("error building status in template controller")
 		}
 		if r.Method == http.MethodPost {
 			valid, err := check.Check(r.Context(), r.FormValue("password"))

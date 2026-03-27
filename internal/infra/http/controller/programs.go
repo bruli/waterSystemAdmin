@@ -29,10 +29,9 @@ func Programs(set *pongo3.TemplateSet, svc *programs.FindAllPrograms, stSvc *sta
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		tplCtx, failed := buildStatusInTemplateController(r.Context(), stSvc)
+		if failed {
+			log.Error().Msg("error building status in template controller")
 		}
 		tplCtx.Add("page", "programs")
 		progrms, err := svc.Find(r.Context())

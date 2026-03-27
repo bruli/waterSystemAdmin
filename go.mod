@@ -1,6 +1,6 @@
 module github.com/bruli/waterSystemAdmin
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3

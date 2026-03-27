@@ -6,7 +6,7 @@ DOCKER_COMPOSE=COMPOSE_BAKE=true docker compose
 
 .DEFAULT_GOAL := help
 
-GOLANGCI_LINT_VERSION=v2.8.0
+GOLANGCI_LINT_VERSION=v2.11.4
 
 .PHONY: docker-logs
 docker-logs:

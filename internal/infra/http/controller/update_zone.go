@@ -20,10 +20,9 @@ func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones
 			return
 		}
 		id := r.PathValue("id")
-		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		tplCtx, failed := buildStatusInTemplateController(r.Context(), stSvc)
+		if failed {
+			log.Error().Msg("error building status in template controller")
 		}
 		tplCtx.Add("page", "zones")
 		if r.Method == http.MethodPost {

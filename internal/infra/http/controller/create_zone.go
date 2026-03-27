@@ -19,10 +19,9 @@ func CreateZone(set *pongo3.TemplateSet, svc *zones.Create, stSvc *status.FindSt
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		tplCtx, err := buildStatusInTemplateController(r.Context(), stSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		tplCtx, failed := buildStatusInTemplateController(r.Context(), stSvc)
+		if failed {
+			log.Error().Msg("error building status in template controller")
 		}
 		tplCtx.Add("page", "zones")
 		tplCtx.Add("relays", []int{1, 2, 3, 4})

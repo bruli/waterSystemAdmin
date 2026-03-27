@@ -18,11 +18,11 @@ func FindStatus(tplSet *pongo3.TemplateSet, svc *status.FindStatus, log zerolog.
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		tplCtx, err := buildStatusInTemplateController(r.Context(), svc)
-		if err != nil {
-			log.Error().Err(err).Msgf("error building status in template controller. Error: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		tplCtx, failed := buildStatusInTemplateController(r.Context(), svc)
+		if failed {
+			log.Error().Msg("error building status in template controller")
 		}
+
 		tplCtx.Add("page", "status")
 		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
 			http.Error(w, "Error executing template", http.StatusInternalServerError)
@@ -30,12 +30,13 @@ func FindStatus(tplSet *pongo3.TemplateSet, svc *status.FindStatus, log zerolog.
 	}
 }
 
-func buildStatusInTemplateController(ctx context.Context, svc *status.FindStatus) (TemplateController, error) {
+func buildStatusInTemplateController(ctx context.Context, svc *status.FindStatus) (controller TemplateController, failed bool) {
 	tplCtx := newTemplateController()
 	st, err := svc.Find(ctx)
 	if err != nil {
-		return nil, err
+		tplCtx.AddError("failed to read status.")
+		return tplCtx, true
 	}
 	tplCtx.Add("status", st)
-	return tplCtx, nil
+	return tplCtx, false
 }
