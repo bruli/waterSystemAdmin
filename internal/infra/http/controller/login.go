@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/password"
@@ -8,25 +9,25 @@ import (
 
 	"github.com/flosch/pongo2/v6"
 	"github.com/gorilla/sessions"
-	"github.com/rs/zerolog"
 )
 
-func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *password.Check, stSvc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
+func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *password.Check, stSvc *status.FindStatus, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := tplSet.FromFile("login.html")
 		if err != nil {
-			log.Error().Err(err).Msgf("error parsing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error parsing template",
+				slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		tplCtx, failed := buildStatusInTemplateController(r.Context(), stSvc)
 		if failed {
-			log.Error().Msg("error building status in template controller")
+			log.ErrorContext(r.Context(), "error building status in template controller")
 		}
 		if r.Method == http.MethodPost {
 			valid, err := check.Check(r.Context(), r.FormValue("password"))
 			if err != nil {
-				log.Error().Err(err).Msgf("error checking password. Error: %s", err.Error())
+				log.ErrorContext(r.Context(), "error checking password", slog.String("error", err.Error()))
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -35,7 +36,8 @@ func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *passw
 				session, _ := store.Get(r, "session")
 				session.Values["authenticated"] = true
 				if err = session.Save(r, w); err != nil {
-					log.Error().Err(err).Msgf("error saving session. Error: %s", err.Error())
+					log.ErrorContext(r.Context(), "error saving session",
+						slog.String("error", err.Error()))
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
 				http.Redirect(w, r, "/status", http.StatusSeeOther)
@@ -46,7 +48,8 @@ func Login(tplSet *pongo2.TemplateSet, store *sessions.CookieStore, check *passw
 		}
 
 		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
-			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error executing template",
+				slog.String("error", err.Error()))
 			http.Error(w, "Error executant login template ", http.StatusInternalServerError)
 		}
 	}

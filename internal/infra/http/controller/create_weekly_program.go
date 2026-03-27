@@ -1,20 +1,20 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 
-	pongo3 "github.com/flosch/pongo2/v6"
-	"github.com/rs/zerolog"
-
 	"github.com/bruli/waterSystemAdmin/internal/domain/programs"
 	"github.com/bruli/waterSystemAdmin/internal/domain/zones"
+	pongo3 "github.com/flosch/pongo2/v6"
 )
 
-func CreateWeeklyProgram(set *pongo3.TemplateSet, zonesSvc *zones.FindZones, createSvc *programs.CreateWeekly, log zerolog.Logger) http.HandlerFunc {
+func CreateWeeklyProgram(set *pongo3.TemplateSet, zonesSvc *zones.FindZones, createSvc *programs.CreateWeekly, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := set.FromFile("create_weekly_program.html")
 		if err != nil {
+			log.ErrorContext(r.Context(), "error parsing template", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -23,6 +23,7 @@ func CreateWeeklyProgram(set *pongo3.TemplateSet, zonesSvc *zones.FindZones, cre
 		}
 		zones, err := zonesSvc.Find(r.Context())
 		if err != nil {
+			log.ErrorContext(r.Context(), "error finding zones", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -37,6 +38,7 @@ func CreateWeeklyProgram(set *pongo3.TemplateSet, zonesSvc *zones.FindZones, cre
 		}
 
 		if err = tpl.ExecuteWriter(context, w); err != nil {
+			log.ErrorContext(r.Context(), "error executing template", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

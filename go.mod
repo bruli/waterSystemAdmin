@@ -7,7 +7,6 @@ require (
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/rs/zerolog v1.34.0
 	golang.org/x/crypto v0.37.0
 	golang.org/x/net v0.39.0
 )
@@ -15,8 +14,6 @@ require (
 require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect

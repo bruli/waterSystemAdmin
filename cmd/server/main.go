@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,17 +26,18 @@ import (
 	"github.com/bruli/waterSystemAdmin/internal/infra/api"
 	"github.com/bruli/waterSystemAdmin/internal/infra/http/controller"
 	pongo2 "github.com/flosch/pongo2/v6"
-	"github.com/rs/zerolog"
 )
 
+const serviceName = "waterSystemAdmin"
+
 func main() {
-	log := buildLogger()
+	log := buildLog()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	conf, err := config.New()
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to load config")
+		log.ErrorContext(ctx, "failed to load config", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -91,24 +93,30 @@ func main() {
 		Handler: nil,
 	}
 
-	go runServer(log, conf, srv)
+	go runServer(ctx, log, conf, srv)
 
 	<-ctx.Done()
-	log.Info().Msg("shutting down server...")
-	if err := srv.Shutdown(context.Background()); err != nil {
-		log.Error().Err(err).Msg("failed to shutdown server")
+	log.InfoContext(ctx, "received interrupt signal")
+
+	if err = srv.Shutdown(context.Background()); err != nil {
+		log.ErrorContext(ctx, "failed to shutdown server", slog.String("error", err.Error()))
 	}
 }
 
-func buildLogger() zerolog.Logger {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	log := zerolog.New(os.Stdout).With().Timestamp().Logger()
-	return log
-}
-
-func runServer(log zerolog.Logger, conf *config.Config, srv *http.Server) {
-	log.Info().Msg("starting server at port " + conf.ServerURL)
+func runServer(ctx context.Context, log *slog.Logger, conf *config.Config, srv *http.Server) {
+	log.InfoContext(ctx, "starting server", slog.String("url", conf.ServerURL))
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatal().Err(err).Msg("failed to start server")
+		log.ErrorContext(ctx, "failed to start server", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
+}
+
+func buildLog() *slog.Logger {
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+
+	log := slog.New(handler)
+	log.With("service", serviceName)
+	return log
 }

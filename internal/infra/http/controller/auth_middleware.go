@@ -1,22 +1,22 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/password"
 
 	"github.com/gorilla/sessions"
-	"github.com/rs/zerolog"
 )
 
 type MiddlewareFunc func(next http.HandlerFunc) http.HandlerFunc
 
-func AuthMiddleware(store *sessions.CookieStore, exists *password.Exists, log zerolog.Logger) MiddlewareFunc {
+func AuthMiddleware(store *sessions.CookieStore, exists *password.Exists, log *slog.Logger) MiddlewareFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			passwdExists, err := exists.Exists(r.Context())
 			if err != nil {
-				log.Error().Err(err).Msgf("error checking if password exists. Error: %s", err.Error())
+				log.ErrorContext(r.Context(), "error checking if password exists", slog.String("error", err.Error()))
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -26,7 +26,7 @@ func AuthMiddleware(store *sessions.CookieStore, exists *password.Exists, log ze
 			}
 			session, err := store.Get(r, "session")
 			if err != nil {
-				log.Error().Err(err).Msgf("error getting session. Error: %s", err.Error())
+				log.ErrorContext(r.Context(), "error getting session", slog.String("error", err.Error()))
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}

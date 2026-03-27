@@ -1,22 +1,21 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
-
-	"github.com/rs/zerolog"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 )
 
-func Deactivate(svc *status.ActivateDeactivate, log zerolog.Logger) http.HandlerFunc {
+func Deactivate(svc *status.ActivateDeactivate, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			log.Error().Msgf("Method not allowed. Method: %s", r.Method)
+			log.ErrorContext(r.Context(), "Method not allowed", slog.String("method", r.Method))
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		if err := svc.DeActivate(r.Context()); err != nil {
-			log.Error().Err(err).Msgf("error deactivating. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error deactivating", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

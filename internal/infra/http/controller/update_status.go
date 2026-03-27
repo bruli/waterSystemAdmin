@@ -1,19 +1,16 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
-
-	"github.com/rs/zerolog"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 )
 
-func UpdateStatus(svc *status.UpdateStatus, log zerolog.Logger) http.HandlerFunc {
+func UpdateStatus(svc *status.UpdateStatus, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := svc.Update(r.Context()); err != nil {
-			log.Error().Err(err).Msgf("error updating status. Error: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			log.ErrorContext(r.Context(), "error updating status", slog.String("error", err.Error()))
 		}
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}

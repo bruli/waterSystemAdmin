@@ -1,13 +1,12 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
 
+	"github.com/bruli/waterSystemAdmin/internal/domain/programs"
 	"github.com/bruli/waterSystemAdmin/internal/domain/status"
 	pongo3 "github.com/flosch/pongo2/v6"
-	"github.com/rs/zerolog"
-
-	"github.com/bruli/waterSystemAdmin/internal/domain/programs"
 )
 
 type Section struct {
@@ -21,23 +20,23 @@ type Weekly struct {
 	Programs []programs.Program
 }
 
-func Programs(set *pongo3.TemplateSet, svc *programs.FindAllPrograms, stSvc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
+func Programs(set *pongo3.TemplateSet, svc *programs.FindAllPrograms, stSvc *status.FindStatus, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := set.FromFile("programs.html")
 		if err != nil {
-			log.Error().Err(err).Msgf("error parsing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error parsing template", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		tplCtx, failed := buildStatusInTemplateController(r.Context(), stSvc)
 		if failed {
-			log.Error().Msg("error building status in template controller")
+			log.ErrorContext(r.Context(), "error building status in template controller")
 		}
 		tplCtx.Add("page", "programs")
 		progrms, err := svc.Find(r.Context())
 		switch {
 		case err != nil:
-			log.Error().Err(err).Msgf("error finding programs. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error finding programs", slog.String("error", err.Error()))
 			tplCtx.AddError(err.Error())
 		default:
 			sections := []Section{
@@ -50,7 +49,7 @@ func Programs(set *pongo3.TemplateSet, svc *programs.FindAllPrograms, stSvc *sta
 			tplCtx.Add("temperature", progrms.Temperature)
 		}
 		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
-			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error executing template", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

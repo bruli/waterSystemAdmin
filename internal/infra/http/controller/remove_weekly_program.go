@@ -2,24 +2,24 @@ package controller
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
-	pongo3 "github.com/flosch/pongo2/v6"
-	"github.com/rs/zerolog"
-
 	"github.com/bruli/waterSystemAdmin/internal/domain/programs"
+	pongo3 "github.com/flosch/pongo2/v6"
 )
 
-func RemoveWeeklyProgram(set *pongo3.TemplateSet, removeSvc *programs.RemoveWeekly, log zerolog.Logger) http.HandlerFunc {
+func RemoveWeeklyProgram(set *pongo3.TemplateSet, removeSvc *programs.RemoveWeekly, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			log.Error().Msgf("Method not allowed. Method: %s", r.Method)
+			log.ErrorContext(r.Context(), "Method not allowed",
+				slog.String("method", r.Method))
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		tpl, err := set.FromFile("redirect_message.html")
 		if err != nil {
-			log.Error().Err(err).Msgf("error parsing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error parsing template", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -30,14 +30,15 @@ func RemoveWeeklyProgram(set *pongo3.TemplateSet, removeSvc *programs.RemoveWeek
 		err = removingWeeklyProgram(r, removeSvc)
 		switch {
 		case err != nil:
-			log.Error().Err(err).Msgf("error removing program. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error removing program", slog.String("error", err.Error()))
 			context["error"] = err.Error()
 		default:
 			context["success"] = true
 		}
 
 		if err = tpl.ExecuteWriter(context, w); err != nil {
-			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error executing template", slog.String("error", err.Error()))
+
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

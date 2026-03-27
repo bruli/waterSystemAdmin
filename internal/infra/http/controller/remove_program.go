@@ -2,24 +2,25 @@ package controller
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
-	pongo3 "github.com/flosch/pongo2/v6"
-	"github.com/rs/zerolog"
-
 	"github.com/bruli/waterSystemAdmin/internal/domain/programs"
+	pongo3 "github.com/flosch/pongo2/v6"
 )
 
-func RemoveProgram(set *pongo3.TemplateSet, svc *programs.Remove, log zerolog.Logger) http.HandlerFunc {
+func RemoveProgram(set *pongo3.TemplateSet, svc *programs.Remove, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			log.Error().Msg("Method not allowed. Method: " + r.Method + "")
+			log.ErrorContext(r.Context(), "Method not allowed",
+				slog.String("method", r.Method))
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		tpl, err := set.FromFile("redirect_message.html")
 		if err != nil {
-			log.Error().Err(err).Msgf("error parsing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error parsing template",
+				slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -36,7 +37,8 @@ func RemoveProgram(set *pongo3.TemplateSet, svc *programs.Remove, log zerolog.Lo
 		}
 
 		if err = tpl.ExecuteWriter(context, w); err != nil {
-			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error executing template",
+				slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

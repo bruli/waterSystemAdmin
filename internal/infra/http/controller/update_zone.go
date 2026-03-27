@@ -1,28 +1,27 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/bruli/waterSystemAdmin/internal/domain/status"
-	pongo3 "github.com/flosch/pongo2/v6"
-	"github.com/rs/zerolog"
-
 	"github.com/bruli/waterSystemAdmin/internal/domain/zones"
+	pongo3 "github.com/flosch/pongo2/v6"
 )
 
-func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones.Update, stSvc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
+func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones.Update, stSvc *status.FindStatus, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := set.FromFile("update_zone.html")
 		if err != nil {
-			log.Error().Err(err).Msgf("error parsing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error parsing template", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		id := r.PathValue("id")
 		tplCtx, failed := buildStatusInTemplateController(r.Context(), stSvc)
 		if failed {
-			log.Error().Msg("error building status in template controller")
+			log.ErrorContext(r.Context(), "error building status in template controller", slog.String("error", err.Error()))
 		}
 		tplCtx.Add("page", "zones")
 		if r.Method == http.MethodPost {
@@ -30,7 +29,7 @@ func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones
 		}
 		list, err := findSvc.Find(r.Context())
 		if err != nil {
-			log.Error().Err(err).Msgf("error finding zones. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error finding zones", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -44,7 +43,7 @@ func UpdateZone(set *pongo3.TemplateSet, findSvc *zones.FindZones, update *zones
 		tplCtx.Add("zone", zo)
 		tplCtx.Add("relays", []int{1, 2, 3, 4})
 		if err = tpl.ExecuteWriter(tplCtx.toPongoContext(), w); err != nil {
-			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error executing template", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

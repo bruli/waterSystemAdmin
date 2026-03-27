@@ -2,25 +2,25 @@ package controller
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
-	pongo3 "github.com/flosch/pongo2/v6"
-	"github.com/rs/zerolog"
-
 	"github.com/bruli/waterSystemAdmin/internal/domain/status"
+	pongo3 "github.com/flosch/pongo2/v6"
 )
 
-func FindStatus(tplSet *pongo3.TemplateSet, svc *status.FindStatus, log zerolog.Logger) http.HandlerFunc {
+func FindStatus(tplSet *pongo3.TemplateSet, svc *status.FindStatus, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := tplSet.FromFile("status.html")
 		if err != nil {
-			log.Error().Err(err).Msgf("error parsing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error parsing template",
+				slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		tplCtx, failed := buildStatusInTemplateController(r.Context(), svc)
 		if failed {
-			log.Error().Msg("error building status in template controller")
+			log.ErrorContext(r.Context(), "error building status in template controller")
 		}
 
 		tplCtx.Add("page", "status")

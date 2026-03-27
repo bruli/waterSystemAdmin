@@ -1,21 +1,21 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 
-	pongo3 "github.com/flosch/pongo2/v6"
-	"github.com/rs/zerolog"
-
 	"github.com/bruli/waterSystemAdmin/internal/domain/programs"
 	"github.com/bruli/waterSystemAdmin/internal/domain/zones"
+	pongo3 "github.com/flosch/pongo2/v6"
 )
 
-func CreateTemperatureProgram(set *pongo3.TemplateSet, zonesSvc *zones.FindZones, createSvc *programs.CreateTemperature, log zerolog.Logger) http.HandlerFunc {
+func CreateTemperatureProgram(set *pongo3.TemplateSet, zonesSvc *zones.FindZones, createSvc *programs.CreateTemperature, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl, err := set.FromFile("create_temperature_program.html")
 		if err != nil {
-			log.Error().Err(err).Msgf("error parsing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error parsing template",
+				slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -24,7 +24,7 @@ func CreateTemperatureProgram(set *pongo3.TemplateSet, zonesSvc *zones.FindZones
 		}
 		zones, err := zonesSvc.Find(r.Context())
 		if err != nil {
-			log.Error().Err(err).Msgf("error finding zones. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error finding zones", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -39,7 +39,7 @@ func CreateTemperatureProgram(set *pongo3.TemplateSet, zonesSvc *zones.FindZones
 		}
 
 		if err = tpl.ExecuteWriter(context, w); err != nil {
-			log.Error().Err(err).Msgf("error executing template. Error: %s", err.Error())
+			log.ErrorContext(r.Context(), "error executing template", slog.String("error", err.Error()))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
